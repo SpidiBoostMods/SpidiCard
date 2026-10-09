@@ -114,7 +114,7 @@ class UpdaterTest {
     @Test void realHelperWaitsForOldJvmAndThenInstallsAndRestarts() throws Exception {
         var plan = fixture(); String java = Path.of(System.getProperty("java.home"), "bin", System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java").toString();
         Path fixtureJava = root.resolve("Fixture.java");
-        Files.writeString(fixtureJava, "import java.nio.file.*; public class Fixture { public static void main(String[] a) throws Exception { if(a.length==0) System.in.read(); else Files.writeString(Path.of(a[0]),a[1]); } }");
+        Files.writeString(fixtureJava, "import java.nio.file.*; public class Fixture { public static void main(String[] a) throws Exception { if(a.length==0) System.in.read(); else { Files.writeString(Path.of(System.getProperty(\"probe.output\")),String.join(\"\\n\",a)); Files.writeString(Path.of(a[0]),a[1]); } } }");
         var compiler = new ProcessBuilder(java.replaceFirst("java(?:\\.exe)?$", System.getProperty("os.name").startsWith("Windows") ? "javac.exe" : "javac"), fixtureJava.toString()).start();
         assertTrue(compiler.waitFor(20, TimeUnit.SECONDS)); assertEquals(0, compiler.exitValue());
         Process parent = new ProcessBuilder(java, "-cp", root.toString(), "Fixture").start();
@@ -122,7 +122,7 @@ class UpdaterTest {
         try {
             Path marker = root.resolve("перезапуск & ok.txt");
             var actual = new UpdatePlan(parent.pid(), plan.gameDir(), plan.target(), plan.staged(), plan.oldHash(), plan.newHash(), root,
-                    List.of(java, "-cp", root.toString(), "Fixture", marker.toString(), "Точные аргументы & $ '"));
+                    List.of(java, "-Dprobe.output=" + root.resolve("restart-argv.txt"), "-cp", root.toString(), "Fixture", marker.toString(), "Точные аргументы & $ '"));
             try (var out = helper.getOutputStream()) { actual.write(out); }
             var read = CompletableFuture.supplyAsync(() -> { try { return new BufferedReader(new InputStreamReader(helper.getInputStream())).readLine(); } catch (IOException e) { throw new CompletionException(e); } });
             assertEquals("READY", read.get(15, TimeUnit.SECONDS));
@@ -132,6 +132,12 @@ class UpdaterTest {
             assertEquals("new", Files.readString(plan.target()));
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
             while (!Files.exists(marker) && System.nanoTime() < deadline) Thread.sleep(50);
+            if (!Files.exists(marker)) {
+                try (var files = Files.list(root)) {
+                    throw new AssertionError("Restart output missing; argv=" + (Files.exists(root.resolve("restart-argv.txt"))
+                            ? Files.readString(root.resolve("restart-argv.txt")) : "main not reached") + "; files=" + files.map(p -> p.getFileName().toString()).toList());
+                }
+            }
             assertEquals("Точные аргументы & $ '", Files.readString(marker));
             assertFalse(Files.readString(plan.gameDir().resolve(".spidicard/update.log")).contains("Точные аргументы"));
         } finally { parent.destroyForcibly(); helper.destroyForcibly(); }
