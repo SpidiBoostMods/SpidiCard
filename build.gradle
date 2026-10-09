@@ -36,8 +36,8 @@ sourceSets {
     updateAgent {}
     resultViewer {}
     viewerQa {
-        compileClasspath += sourceSets.main.output + sourceSets.resultViewer.output
-        runtimeClasspath += sourceSets.main.output + sourceSets.resultViewer.output
+        compileClasspath += sourceSets.main.output + sourceSets.resultViewer.output + sourceSets.updateAgent.output
+        runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.resultViewer.output
     }
     runtimeProbe {
         compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output

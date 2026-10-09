@@ -22,6 +22,7 @@ public final class ModUpdater {
     });
     private final AtomicBoolean checking = new AtomicBoolean();
     private volatile boolean pending;
+    private final GitHubDownload download = new GitHubDownload();
     private final Path gameDir;
     private final Path installed;
     private final String version;
@@ -54,7 +55,6 @@ public final class ModUpdater {
         worker.execute(() -> {
             Path staged = null; Process helper = null;
             try {
-                var download = new GitHubDownload();
                 var release = ReleaseManifest.parse(new String(download.get(ReleaseManifest.LATEST, 16384), StandardCharsets.UTF_8));
                 if (!release.newerThan(version)) return;
                 Path directory = gameDir.resolve(".spidicard"); Files.createDirectories(directory);
