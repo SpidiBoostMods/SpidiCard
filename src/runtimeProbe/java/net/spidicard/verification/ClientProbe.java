@@ -88,6 +88,7 @@ public final class ClientProbe implements ClientModInitializer {
     private void tick(MinecraftClient client) {
         if (step == 99) return;
         try {
+            MemoryLifecycleProbe.assertReleased();
             if (++ticks > 12000) throw new AssertionError("Integration timeout");
             if (Boolean.getBoolean("spidicard.qa.loading") && full() != null
                     && client.getNetworkHandler() == null) {

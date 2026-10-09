@@ -110,3 +110,5 @@ loom {
 }
 
 apply from: 'shared-updater.gradle'
+sourceSets.viewerQa.compileClasspath += sourceSets.sharedAgent.output
+sourceSets.viewerQa.runtimeClasspath += sourceSets.sharedAgent.output

@@ -14,6 +14,7 @@ public final class ChatTheme {
     public static final Identifier PREFIX = Identifier.of("spidicard", "prefix");
     public static final Identifier BODY = Identifier.of("spidicard", "body");
     public static final Identifier ERROR = Identifier.of("spidicard", "error");
+    private static final int OWNERSHIP_CACHE_LIMIT = 512;
     private static final Map<OrderedText, Boolean> OWNED = new WeakHashMap<>();
     private ChatTheme() {}
 
@@ -46,7 +47,14 @@ public final class ChatTheme {
 
     /** Wrap only our text. Cached ownership leaves ordinary chat and other mods' text untouched. */
     public static OrderedText animate(OrderedText original) {
-        boolean owned = OWNED.computeIfAbsent(original, text -> !text.accept((index, style, point) -> !themed(style)));
+        Boolean owned = OWNED.get(original);
+        if (owned == null) {
+            // A busy client creates many short-lived OrderedText values. Never let a delayed GC
+            // turn one render call into an unbounded WeakHashMap cleanup.
+            if (OWNED.size() >= OWNERSHIP_CACHE_LIMIT) OWNED.clear();
+            owned = !original.accept((index, style, point) -> !themed(style));
+            OWNED.put(original, owned);
+        }
         if (!owned) return original;
         return animate(original, System.nanoTime());
     }
@@ -61,6 +69,7 @@ public final class ChatTheme {
             return visitor.accept(index, animated, point);
         });
     }
+    static int ownershipCacheSize() { return OWNED.size(); }
     private static boolean themed(Style style) {
         Identifier font = style.getFont();
         return PREFIX.equals(font) || BODY.equals(font) || ERROR.equals(font);

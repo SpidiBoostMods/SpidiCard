@@ -80,6 +80,7 @@ public final class InterruptionProbe {
         if (step == 99) return;
         Path output = client.runDirectory.toPath();
         try {
+            MemoryLifecycleProbe.assertReleased();
             if (System.nanoTime() > deadline) throw new AssertionError("Interruption verification timed out at step " + step);
             // Check the final window even after kick clears player, world and play handler.
             if (step == 8 || step == 9) {

@@ -63,6 +63,7 @@ public final class SpidiCardClient implements ClientModInitializer {
     private ClientConnection fullConnection;
     private InventoryCardCounter scanCardCounter;
     private InventoryCardCounter.NameCache scanNameCache;
+    private final TabSnapshotCache tabSnapshots = new TabSnapshotCache();
 
     @Override
     public void onInitializeClient() {
@@ -187,6 +188,7 @@ public final class SpidiCardClient implements ClientModInitializer {
             }
             @Override public void status(String text) { message(text); }
             @Override public void finished(boolean complete, String reason) {
+                tabSnapshots.clear(); fullConnection = null;
                 if (!complete && !reason.contains("пользователем"))
                     error("ОБХОД ПРЕРВАН", lastWriteSucceeded ? "Найденные ники сохранены" : "Ошибка сохранения",
                             reason + " Файл: " + resultsFile.toAbsolutePath());
@@ -219,22 +221,22 @@ public final class SpidiCardClient implements ClientModInitializer {
         boolean connected = fullConnection != null && fullConnection.isOpen()
                 && (network == null || network.getConnection() == fullConnection);
         boolean ready = worldReady();
-        long fingerprint = 0;
-        if (network != null) {
-            fingerprint = network.getListedPlayerListEntries().stream()
-                    .map(e -> e.getProfile().getId() + ":" + e.getProfile().getName())
-                    .sorted().toList().hashCode();
+        TabSnapshotCache.Snapshot tab;
+        if (network == null) {
+            tabSnapshots.clear();
+            tab = new TabSnapshotCache.Snapshot(0, false, 0);
+        } else {
+            tab = tabSnapshots.get(network, worldEpoch, tabRevision, liveSelfName(),
+                    () -> network.getListedPlayerListEntries().stream()
+                            .map(e -> new TabSnapshotCache.Entry(e.getProfile().getId(), e.getProfile().getName())).toList(),
+                    name -> name != null && PLAYER_NAME.matcher(name).matches() && !exclusions.excludes(name));
         }
         boolean tabPresent = network != null && client.player != null
-                && network.getPlayerListEntry(client.player.getUuid()) != null
-                && !network.getListedPlayerListEntries().isEmpty();
-        int eligiblePlayers = network == null ? 0 : (int) network.getListedPlayerListEntries().stream()
-                .map(entry -> entry.getProfile().getName())
-                .filter(name -> name != null && PLAYER_NAME.matcher(name).matches() && !exclusions.excludes(name)).count();
+                && network.getPlayerListEntry(client.player.getUuid()) != null && tab.present();
         fullRun.tick(new FullRun.View(connected, ready,
                 ready && ServerMenus.compass(item(client.player.getInventory().getStack(0))),
-                worldEpoch, tabRevision, fingerprint, scoreboardGrief(), menuSnapshot(),
-                positionRevision, tabPresent, eligiblePlayers), now());
+                worldEpoch, tabRevision, tab.fingerprint(), scoreboardGrief(), menuSnapshot(),
+                positionRevision, tabPresent, tab.eligible()), now());
     }
 
     private boolean worldReady() {
@@ -284,6 +286,7 @@ public final class SpidiCardClient implements ClientModInitializer {
     }
 
     public void worldChanged() {
+        tabSnapshots.clear();
         worldEpoch++; menuSync = -1; worldReadySince = -1;
         scanCardCounter = null;
         if (fullActive()) LOGGER.info("Full world transition: grief={}, phase={}; keeping run active",
@@ -343,6 +346,7 @@ public final class SpidiCardClient implements ClientModInitializer {
             @Override public void progress() { status(); }
             @Override public void finish(boolean complete, String reason) {
                 session.finishTimings(now());
+                scanCardCounter = null; scanNameCache = null; scanConnection = null;
                 LOGGER.info("Scan timings: {}", session.timings(now()).summary());
                 // After an interrupted request, drain late packets before allowing a new scan.
                 if (!complete) restartAfter = now() + timeout;
