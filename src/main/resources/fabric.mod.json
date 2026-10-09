@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "spidicard",
+  "version": "${version}",
+  "name": "spidiboost.SpidiCard",
+  "icon": "assets/spidicard/icon.png",
+  "contact": {
+    "homepage": "https://github.com/SpidiBoostMods/SpidiCard",
+    "sources": "https://github.com/SpidiBoostMods/SpidiCard",
+    "issues": "https://github.com/SpidiBoostMods/SpidiCard/issues"
+  },
+  "description": "Find players with red, green and blue key cards through /invsee.",
+  "authors": ["SpidiBoost"],
+  "environment": "client",
+  "entrypoints": { "client": ["net.spidicard.SpidiCardClient"] },
+  "mixins": ["spidicard.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-command-api-v2": "*",
+    "fabric-lifecycle-events-v1": "*",
+    "fabric-networking-api-v1": "*"
+  }
+}

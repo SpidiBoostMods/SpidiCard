@@ -1,0 +1,104 @@
+plugins {
+    id 'fabric-loom' version '1.9.2'
+}
+version = project.mod_version
+group = 'net.spidicard'
+base { archivesName = 'SpidiCard-1.21.4' }
+repositories { mavenCentral() }
+dependencies {
+    minecraft 'com.mojang:minecraft:1.21.4'
+    mappings 'net.fabricmc:yarn:1.21.4+build.8:v2'
+    modImplementation 'net.fabricmc:fabric-loader:0.16.10'
+    modImplementation 'net.fabricmc.fabric-api:fabric-api:0.119.4+1.21.4'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand 'version': project.version }
+}
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+    options.encoding = 'UTF-8'
+}
+test { useJUnitPlatform() }
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+jar {
+    manifest { attributes 'Implementation-Title': 'SpidiCard', 'Implementation-Vendor': 'SpidiBoost' }
+}
+
+// Isolated integration-test mod. These classes/resources are never packaged in the release JAR.
+sourceSets {
+    updateAgent {}
+    resultViewer {}
+    viewerQa {
+        compileClasspath += sourceSets.main.output + sourceSets.resultViewer.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.resultViewer.output
+    }
+    runtimeProbe {
+        compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+        runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+    }
+}
+sourceSets.main.compileClasspath += sourceSets.updateAgent.output
+sourceSets.main.runtimeClasspath += sourceSets.updateAgent.output
+sourceSets.test.compileClasspath += sourceSets.updateAgent.output
+sourceSets.test.runtimeClasspath += sourceSets.updateAgent.output
+def updateAgentJar = tasks.register('updateAgentJar', Jar) {
+    from sourceSets.updateAgent.output
+    archiveFileName = 'spidicard-update-agent.jar'
+    destinationDirectory = layout.buildDirectory.dir('update-agent')
+    manifest { attributes 'Main-Class': 'net.spidicard.update.AgentMain', 'Implementation-Vendor': 'SpidiBoost' }
+}
+processResources { from(updateAgentJar) }
+jar { from(sourceSets.updateAgent.output) }
+tasks.named('sourcesJar', Jar) { from(sourceSets.updateAgent.allSource) { into 'updateAgent' } }
+def viewerJar = tasks.register('resultViewerJar', Jar) {
+    dependsOn tasks.named('resultViewerClasses')
+    from sourceSets.resultViewer.output
+    archiveFileName = 'spidicard-result-viewer.jar'
+    destinationDirectory = layout.buildDirectory.dir('result-viewer')
+    manifest { attributes 'Main-Class': 'net.spidicard.viewer.ResultsWindow', 'Implementation-Vendor': 'SpidiBoost' }
+}
+processResources { from(viewerJar) }
+tasks.named('sourcesJar', Jar) {
+    from(sourceSets.resultViewer.allSource) { into 'resultViewer' }
+    manifest { attributes 'Implementation-Vendor': 'SpidiBoost' }
+}
+loom {
+    mods {
+        spidicard { sourceSet sourceSets.main }
+        spidicard_probe { sourceSet sourceSets.runtimeProbe }
+    }
+    runs {
+        verification {
+            client()
+            name 'SpidiCard Integration Verification'
+            source sourceSets.runtimeProbe
+            runDir 'build/runtime-verification'
+            programArgs '--username', 'CardQA', '--quickPlaySingleplayer', 'SpidiCard-QA'
+            vmArgs '-Dmixin.debug.countInjections=true'
+            if (System.getProperty('os.name').toLowerCase(java.util.Locale.ROOT).startsWith('mac')) {
+                vmArgs '-XstartOnFirstThread'
+            }
+            if (project.hasProperty('qaFollowup')) vmArgs '-Dspidicard.qa.followup=true'
+            if (project.hasProperty('qaUpdater')) vmArgs '-Dspidicard.qa.updater=true'
+            if (project.hasProperty('qaConfigKick')) vmArgs '-Dspidicard.qa.configKick=true', '-Dspidicard.qa.full=true'
+            if (project.hasProperty('qaMenu')) vmArgs '-Dspidicard.qa.menu=true'
+            if (project.hasProperty('qaBenchmark')) vmArgs '-Dspidicard.qa.benchmark=true'
+            if (project.hasProperty('qaSpeedSafety')) vmArgs '-Dspidicard.qa.speedSafety=true'
+            if (project.hasProperty('qaFull')) vmArgs '-Dspidicard.qa.full=true'
+            if (project.hasProperty('qaFullFrom')) vmArgs '-Dspidicard.qa.fullFrom=true', '-Dspidicard.qa.full=true'
+            if (project.hasProperty('qaSelection')) vmArgs '-Dspidicard.qa.selection=true', '-Dspidicard.qa.fullFrom=true', '-Dspidicard.qa.full=true'
+            if (project.hasProperty('qaStyle')) vmArgs '-Dspidicard.qa.style=true', '-Dspidicard.qa.fullFrom=true', '-Dspidicard.qa.full=true'
+            if (project.hasProperty('qaLate')) vmArgs '-Dspidicard.qa.late=true'
+            if (project.hasProperty('qaLoading')) vmArgs '-Dspidicard.qa.loading=true', '-Dspidicard.qa.full=true'
+            if (project.hasProperty('qaInterruptions')) vmArgs '-Dspidicard.qa.interruptions=true', '-Dspidicard.qa.full=true'
+            if (project.hasProperty('qaStartKick')) vmArgs '-Dspidicard.qa.startKick=true'
+        }
+    }
+}

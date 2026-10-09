@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "spidicard_probe",
+  "version": "1.0.0",
+  "name": "SpidiCard Local Integration Probe",
+  "authors": ["SpidiBoost"],
+  "environment": "client",
+  "entrypoints": {
+    "main": ["net.spidicard.verification.ServerProbe"],
+    "client": ["net.spidicard.verification.ClientProbe"]
+  },
+  "depends": { "spidicard": "*", "fabric-api": "*" }
+}

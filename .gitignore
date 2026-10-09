@@ -1,0 +1,8 @@
+.gradle/
+build/
+run/
+.DS_Store
+__pycache__/
+*.key
+*.pem
+*.token
