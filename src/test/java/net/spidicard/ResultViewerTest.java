@@ -9,10 +9,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ResultViewerTest {
     @TempDir Path directory;
-    @Test void windowsUsesJavaExeAndPreservesUnquotedSpecialPathsAsSingleArguments() {
+    @Test void windowsUsesJavaExeAndKeepsInstancePathsOutOfNativeCommandLine() {
         Path home = directory.resolve("Java 21 Кириллица");
         Path helper = directory.resolve("instance & folder").resolve("viewer.jar");
-        Path result = directory.resolve("Другой инстанс ' $ (тест)").resolve("spidicard.txt");
         var args = ResultViewer.command(home, "Windows 11", helper);
         assertEquals(home.resolve("bin/java.exe").toString(), args.getFirst());
         assertEquals("--stdin", args.getLast());

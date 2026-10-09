@@ -2,6 +2,8 @@ package net.spidicard.update;
 
 import java.nio.file.*;
 import java.util.*;
+import java.lang.management.ManagementFactory;
+import net.fabricmc.loader.api.FabricLoader;
 
 public final class RestartCommand {
     private RestartCommand() {}
@@ -15,7 +17,22 @@ public final class RestartCommand {
             if (!prism.isEmpty()) return prism;
         }
         var info = ProcessHandle.current().info();
-        return direct(info.command().orElse(""), info.arguments().orElse(new String[0]));
+        if (info.arguments().isPresent()) return direct(info.command().orElse(""), info.arguments().get());
+        // Java 21 ProcessHandle does not expose argv on every Windows installation.
+        // Fabric and RuntimeMXBean keep already-tokenized arguments; never split the game command.
+        return snapshot(info.command().orElse(""), ManagementFactory.getRuntimeMXBean().getInputArguments(),
+                System.getProperty("java.class.path", ""), System.getProperty("sun.java.command", ""),
+                FabricLoader.getInstance().getLaunchArguments(false));
+    }
+    public static List<String> snapshot(String executable, List<String> vmArgs, String classpath,
+                                        String mainCommand, String[] gameArgs) {
+        String main = null;
+        for (String candidate : List.of("net.fabricmc.loader.impl.launch.knot.KnotClient", "net.fabricmc.loader.launch.knot.KnotClient"))
+            if (mainCommand.equals(candidate) || mainCommand.startsWith(candidate + " ")) main = candidate;
+        if (main == null || classpath.isEmpty()) return List.of();
+        var args = new ArrayList<String>(vmArgs);
+        args.add("-cp"); args.add(classpath); args.add(main); args.addAll(List.of(gameArgs));
+        return direct(executable, args.toArray(String[]::new));
     }
     public static List<String> prism(Path gameDir, String executable) {
         if (executable.isEmpty()) return List.of();

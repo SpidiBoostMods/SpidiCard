@@ -104,12 +104,20 @@ class UpdaterTest {
         assertTrue(RestartCommand.prism(root, "/usr/bin/java").isEmpty());
     }
     @Test void directFabricReplayKeepsExactArgvAndRejectsWrappers() {
-        var args = new String[]{"-Xmx4G", "-cp", "dir with spaces/game.jar", "net.fabricmc.loader.impl.launch.knot.KnotClient", "--username", "Ник с пробелом"};
+        var args = new String[]{"-Xmx4G", "-cp", "dir with spaces/game.jar", "net.fabricmc.loader.impl.launch.knot.KnotClient", "--username", "Name with spaces"};
         var command = RestartCommand.direct("C:/Java 21/bin/javaw.exe", args);
         assertEquals(List.of(args), command.subList(1, command.size()));
         assertTrue(RestartCommand.direct("java", new String[]{"@temporary-args", "net.fabricmc.loader.impl.launch.knot.KnotClient"}).isEmpty());
         assertTrue(RestartCommand.direct("java", new String[]{"org.prismlauncher.EntryPoint"}).isEmpty());
         assertTrue(RestartCommand.direct("wrapper", args).isEmpty());
+    }
+    @Test void missingOsArgvUsesTokenizedFabricAndVmArgumentsWithoutSplittingValues() {
+        String main = "net.fabricmc.loader.impl.launch.knot.KnotClient";
+        var command = RestartCommand.snapshot("java", List.of("-Xmx4G", "-Dsome.path=folder with spaces"),
+                "libraries/a.jar;libraries/b with spaces.jar", main + " deliberately unused string", new String[]{"--accessToken", "dummy-token", "--gameDir", "instance & folder"});
+        assertEquals(List.of("java", "-Xmx4G", "-Dsome.path=folder with spaces", "-cp", "libraries/a.jar;libraries/b with spaces.jar",
+                main, "--accessToken", "dummy-token", "--gameDir", "instance & folder"), command);
+        assertTrue(RestartCommand.snapshot("java", List.of(), "some.jar", "org.prismlauncher.EntryPoint " + main, new String[0]).isEmpty());
     }
     @Test void windowsDoesNotReplayUnicodeThroughIncompatibleJavaCodepage() {
         String[] args = {"net.fabricmc.loader.impl.launch.knot.KnotClient", "--gameDir", "C:/Инстанс/игра"};
