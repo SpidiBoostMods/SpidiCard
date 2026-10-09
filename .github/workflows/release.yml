@@ -19,7 +19,7 @@ jobs:
           java-version: '21'
       - name: Cross-platform tests
         shell: bash
-        run: bash ./gradlew test --no-daemon
+        run: bash ./gradlew check --no-daemon
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -41,7 +41,7 @@ jobs:
         shell: bash
         run: test "$GITHUB_REF_NAME" = "v$(sed -n 's/^mod_version=//p' gradle.properties)"
       - name: Build and package
-        run: bash ./gradlew build --no-daemon && python scripts/release.py
+        run: bash ./gradlew build --no-daemon && python scripts/package_family_release.py
       - name: Publish verified assets
         env:
           GH_TOKEN: ${{ github.token }}

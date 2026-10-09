@@ -47,7 +47,9 @@ public final class ClientProbe implements ClientModInitializer {
     }
 
     @Override public void onInitializeClient() {
-        if (Boolean.getBoolean("spidicard.qa.updater")) {
+        if (Boolean.getBoolean("spidicard.qa.family")) {
+            new FamilyProbe().register();
+        } else if (Boolean.getBoolean("spidicard.qa.updater")) {
             new UpdaterProbe().register();
         } else if (Boolean.getBoolean("spidicard.qa.speedSafety")) {
             new SpeedSafetyProbe().register();

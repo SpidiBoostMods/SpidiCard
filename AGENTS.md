@@ -7,6 +7,6 @@
 - Commit the source and push an annotated `vX.Y.Z` tag. The release workflow must pass Windows, macOS and Linux tests before publishing assets.
 - Verify the public latest-release manifest, downloaded JAR identity and SHA-256 after publication. Keep the updater endpoint and supported Minecraft version consistent with the release.
 - Never upload live instance files, configs, logs, player results, credentials or launcher arguments. Never embed a publisher token in the mod. Source archives contain project files only.
-- Updates must preserve results, configuration, worlds and unrelated mods; replace only the loaded SpidiCard JAR in its own instance after the owning JVM exits. Preserve a backup.
+- Updates must preserve results, configuration, worlds and unrelated mods; replace only installed SpidiBoost family JARs in their own instance after the owning JVM exits; migrate the obsolete Hist addon with a backup when SpidiBan is merged. Preserve a backup.
 - Prefer native Prism CLI restart. Support standard Fabric launches using tokenized arguments; use installation after ordinary exit when launcher wrappers or Windows encodings make replay unreliable.
 - Never stop or modify the user's running Minecraft or recording to perform verification. Use the isolated verification instance.

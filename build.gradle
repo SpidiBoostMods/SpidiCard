@@ -87,6 +87,10 @@ loom {
             if (System.getProperty('os.name').toLowerCase(java.util.Locale.ROOT).startsWith('mac')) {
                 vmArgs '-XstartOnFirstThread'
             }
+            if (project.hasProperty('qaFamily')) {
+                vmArgs '-Dspidicard.qa.family=true'
+                vmArgs '-Dfabric.addMods=' + [file('../SpidiBan/build/devlibs/SpidiBan-1.21.4-1.1.0-dev.jar'),file('../SixubaaFP/build/devlibs/6ubaaFP-1.21.4-1.1.0-dev.jar'),file('../LittlePetStandalone/build/devlibs/LittlePet-1.21.4-1.2.0-dev.jar')].collect { it.absolutePath }.join(File.pathSeparator)
+            }
             if (project.hasProperty('qaFollowup')) vmArgs '-Dspidicard.qa.followup=true'
             if (project.hasProperty('qaUpdater')) vmArgs '-Dspidicard.qa.updater=true'
             if (project.hasProperty('qaConfigKick')) vmArgs '-Dspidicard.qa.configKick=true', '-Dspidicard.qa.full=true'
@@ -104,3 +108,5 @@ loom {
         }
     }
 }
+
+apply from: 'shared-updater.gradle'

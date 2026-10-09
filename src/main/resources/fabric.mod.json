@@ -10,10 +10,18 @@
     "issues": "https://github.com/SpidiBoostMods/SpidiCard/issues"
   },
   "description": "Find players with red, green and blue key cards through /invsee.",
-  "authors": ["SpidiBoost"],
+  "authors": [
+    "SpidiBoost"
+  ],
   "environment": "client",
-  "entrypoints": { "client": ["net.spidicard.SpidiCardClient"] },
-  "mixins": ["spidicard.mixins.json"],
+  "entrypoints": {
+    "client": [
+      "net.spidicard.SpidiCardClient"
+    ]
+  },
+  "mixins": [
+    "spidicard.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.16.10",
     "minecraft": "~1.21.4",
