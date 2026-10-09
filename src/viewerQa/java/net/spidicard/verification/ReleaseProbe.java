@@ -9,7 +9,7 @@ public final class ReleaseProbe {
     public static void main(String[] args) throws Exception {
         var download = new GitHubDownload();
         var manifest = ReleaseManifest.parse(new String(download.get(ReleaseManifest.LATEST, 16384), StandardCharsets.UTF_8));
-        if (!manifest.version().equals("1.4.0") || !manifest.newerThan("1.3.9") || manifest.newerThan("1.4.0"))
+        if (!manifest.version().equals(args[1]) || !manifest.newerThan("1.3.9") || manifest.newerThan(args[1]))
             throw new AssertionError("Latest release version mismatch");
         Path directory = Path.of(args[0]).toAbsolutePath(); Files.createDirectories(directory);
         Path file = directory.resolve(manifest.artifact());

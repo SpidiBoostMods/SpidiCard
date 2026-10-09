@@ -12,6 +12,8 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.InputStream;
+import java.io.DataInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,9 +28,8 @@ public final class ResultsWindow {
     private static JFrame window;
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) throw new IllegalArgumentException("Expected the result file path");
+        Path file = readResultPath(args, System.in);
         UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-        Path file = Path.of(args[0]).toAbsolutePath().normalize();
         String contents = visibleContents(Files.readString(file, StandardCharsets.UTF_8));
         SwingUtilities.invokeAndWait(() -> show(file, contents));
         // Close this exact viewer, never another application's document.
@@ -42,6 +43,12 @@ public final class ResultsWindow {
         }, "SpidiCard-viewer-control");
         control.setDaemon(true);
         control.start();
+    }
+
+    public static Path readResultPath(String[] args, InputStream input) throws Exception {
+        if (args.length != 1) throw new IllegalArgumentException("Expected the result file path");
+        String path = args[0].equals("--stdin") ? new DataInputStream(input).readUTF() : args[0];
+        return Path.of(path).toAbsolutePath().normalize();
     }
 
     public static String visibleContents(String contents) {

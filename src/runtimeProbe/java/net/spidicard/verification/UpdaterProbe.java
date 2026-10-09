@@ -25,7 +25,7 @@ final class UpdaterProbe {
                 if (checks.get() != 2) throw new AssertionError("Expected startup + local-server JOIN checks: " + checks);
                 var constructor = Class.forName("net.spidicard.update.UpdateScreen").getDeclaredConstructor(String.class, MinecraftClient.class);
                 constructor.setAccessible(true);
-                Screen screen = (Screen) constructor.newInstance("1.4.0", client);
+                Screen screen = (Screen) constructor.newInstance("1.4.1", client);
                 client.setScreen(screen);
                 if (screen.shouldCloseOnEsc()) throw new AssertionError("Update screen can be accidentally dismissed");
                 ticks = 0; step = 1;

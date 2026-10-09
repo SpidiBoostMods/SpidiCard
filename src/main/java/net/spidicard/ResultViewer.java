@@ -1,6 +1,7 @@
 package net.spidicard;
 
 import java.io.IOException;
+import java.io.DataOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,8 +43,13 @@ public final class ResultViewer {
                 Path log = absolute.getParent().resolve("logs").resolve("spidicard-viewer.log");
                 Files.createDirectories(log.getParent());
                 Process current = new ProcessBuilder(command(Path.of(System.getProperty("java.home")),
-                        System.getProperty("os.name"), helper, absolute))
+                        System.getProperty("os.name"), helper))
+                        .directory(directory.toFile())
                         .redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.appendTo(log.toFile())).start();
+                try {
+                    var input = new DataOutputStream(current.getOutputStream());
+                    input.writeUTF(absolute.toString()); input.flush();
+                } catch (IOException e) { current.destroyForcibly(); throw e; }
                 previous = current;
                 AtomicBoolean closing = new AtomicBoolean();
                 previousClosing = closing;
@@ -69,10 +75,9 @@ public final class ResultViewer {
         previous = null;
     }
 
-    public static List<String> command(Path javaHome, String os, Path helper, Path file) {
+    public static List<String> command(Path javaHome, String os, Path helper) {
         boolean windows = os.toLowerCase(Locale.ROOT).startsWith("windows");
         return List.of(javaHome.resolve("bin").resolve(windows ? "java.exe" : "java").toString(),
-                "-Dapple.awt.application.name=SpidiCard", "-jar", helper.toAbsolutePath().normalize().toString(),
-                file.toAbsolutePath().normalize().toString());
+                "-Dapple.awt.application.name=SpidiCard", "-jar", helper.getFileName().toString(), "--stdin");
     }
 }

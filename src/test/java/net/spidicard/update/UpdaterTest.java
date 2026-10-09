@@ -111,6 +111,12 @@ class UpdaterTest {
         assertTrue(RestartCommand.direct("java", new String[]{"org.prismlauncher.EntryPoint"}).isEmpty());
         assertTrue(RestartCommand.direct("wrapper", args).isEmpty());
     }
+    @Test void windowsDoesNotReplayUnicodeThroughIncompatibleJavaCodepage() {
+        String[] args = {"net.fabricmc.loader.impl.launch.knot.KnotClient", "--gameDir", "C:/Инстанс/игра"};
+        assertTrue(RestartCommand.direct("C:/Java/bin/java.exe", args, "Windows 11", "windows-1252").isEmpty());
+        assertFalse(RestartCommand.direct("C:/Java/bin/java.exe", args, "Windows 11", "windows-1251").isEmpty());
+        assertFalse(RestartCommand.direct("/usr/bin/java", args, "Mac OS X", "UTF-8").isEmpty());
+    }
     @Test void realHelperWaitsForOldJvmAndThenInstallsAndRestarts() throws Exception {
         var plan = fixture(); String java = Path.of(System.getProperty("java.home"), "bin", System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java").toString();
         Path fixtureJava = root.resolve("Fixture.java");
@@ -118,11 +124,15 @@ class UpdaterTest {
         var compiler = new ProcessBuilder(java.replaceFirst("java(?:\\.exe)?$", System.getProperty("os.name").startsWith("Windows") ? "javac.exe" : "javac"), fixtureJava.toString()).start();
         assertTrue(compiler.waitFor(20, TimeUnit.SECONDS)); assertEquals(0, compiler.exitValue());
         Process parent = new ProcessBuilder(java, "-cp", root.toString(), "Fixture").start();
-        Process helper = new ProcessBuilder(java, "-jar", Path.of("build/update-agent/spidicard-update-agent.jar").toAbsolutePath().toString()).start();
+        Path localHelper = plan.gameDir().resolve(".spidicard/agent.jar");
+        Files.copy(Path.of("build/update-agent/spidicard-update-agent.jar"), localHelper);
+        Process helper = new ProcessBuilder(java, "-jar", "agent.jar").directory(localHelper.getParent().toFile()).start();
         try {
-            Path marker = root.resolve("перезапуск & ok.txt");
+            boolean windows = System.getProperty("os.name").startsWith("Windows");
+            Path marker = root.resolve(windows ? "restart & ok.txt" : "перезапуск & ok.txt");
+            String payload = windows ? "Exact argv & $ '" : "Точные аргументы & $ '";
             var actual = new UpdatePlan(parent.pid(), plan.gameDir(), plan.target(), plan.staged(), plan.oldHash(), plan.newHash(), root,
-                    List.of(java, "-Dprobe.output=" + root.resolve("restart-argv.txt"), "-cp", root.toString(), "Fixture", marker.toString(), "Точные аргументы & $ '"));
+                    List.of(java, "-Dprobe.output=" + root.resolve("restart-argv.txt"), "-cp", root.toString(), "Fixture", marker.toString(), payload));
             try (var out = helper.getOutputStream()) { actual.write(out); }
             var read = CompletableFuture.supplyAsync(() -> { try { return new BufferedReader(new InputStreamReader(helper.getInputStream())).readLine(); } catch (IOException e) { throw new CompletionException(e); } });
             assertEquals("READY", read.get(15, TimeUnit.SECONDS));
@@ -138,8 +148,8 @@ class UpdaterTest {
                             ? Files.readString(root.resolve("restart-argv.txt")) : "main not reached") + "; files=" + files.map(p -> p.getFileName().toString()).toList());
                 }
             }
-            assertEquals("Точные аргументы & $ '", Files.readString(marker));
-            assertFalse(Files.readString(plan.gameDir().resolve(".spidicard/update.log")).contains("Точные аргументы"));
+            assertEquals(payload, Files.readString(marker));
+            assertFalse(Files.readString(plan.gameDir().resolve(".spidicard/update.log")).contains(payload));
         } finally { parent.destroyForcibly(); helper.destroyForcibly(); }
     }
 }

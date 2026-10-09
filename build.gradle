@@ -48,6 +48,8 @@ sourceSets.main.compileClasspath += sourceSets.updateAgent.output
 sourceSets.main.runtimeClasspath += sourceSets.updateAgent.output
 sourceSets.test.compileClasspath += sourceSets.updateAgent.output
 sourceSets.test.runtimeClasspath += sourceSets.updateAgent.output
+sourceSets.test.compileClasspath += sourceSets.resultViewer.output
+sourceSets.test.runtimeClasspath += sourceSets.resultViewer.output
 def updateAgentJar = tasks.register('updateAgentJar', Jar) {
     from sourceSets.updateAgent.output
     archiveFileName = 'spidicard-update-agent.jar'

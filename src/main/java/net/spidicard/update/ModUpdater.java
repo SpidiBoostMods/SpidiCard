@@ -68,7 +68,8 @@ public final class ModUpdater {
                 Path java = Path.of(System.getProperty("java.home"), "bin",
                         System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java");
                 Path agentLog = directory.resolve("agent.log");
-                helper = new ProcessBuilder(java.toString(), "-jar", agent.toString())
+                helper = new ProcessBuilder(java.toString(), "-jar", agent.getFileName().toString())
+                        .directory(directory.toFile())
                         .redirectError(ProcessBuilder.Redirect.appendTo(agentLog.toFile())).start();
                 var plan = new UpdatePlan(ProcessHandle.current().pid(), gameDir, installed, staged,
                         oldHash, release.sha256(), Path.of(System.getProperty("user.dir")).toAbsolutePath(), restart);

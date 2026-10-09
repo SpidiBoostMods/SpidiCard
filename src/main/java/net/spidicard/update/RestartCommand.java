@@ -30,6 +30,9 @@ public final class RestartCommand {
         return List.of(executable, "--dir", instances.getParent().toString(), "--launch", instance.getFileName().toString());
     }
     public static List<String> direct(String executable, String[] arguments) {
+        return direct(executable, arguments, System.getProperty("os.name"), System.getProperty("native.encoding", "UTF-8"));
+    }
+    public static List<String> direct(String executable, String[] arguments, String os, String nativeEncoding) {
         if (executable.isEmpty()) return List.of();
         String name = Path.of(executable).getFileName().toString().toLowerCase(Locale.ROOT);
         if (!Set.of("java", "java.exe", "javaw.exe").contains(name)) return List.of();
@@ -38,6 +41,15 @@ public final class RestartCommand {
         boolean knot = Arrays.asList(arguments).contains("net.fabricmc.loader.impl.launch.knot.KnotClient")
                 || Arrays.asList(arguments).contains("net.fabricmc.loader.launch.knot.KnotClient");
         if (!knot) return List.of();
+        // Java 21's Windows launcher can lose characters outside the system codepage.
+        // Never replay a corrupted nickname/classpath; native Prism uses its own launcher.
+        if (os.startsWith("Windows")) {
+            try {
+                var encoder = java.nio.charset.Charset.forName(nativeEncoding).newEncoder();
+                if (!encoder.canEncode(executable)) return List.of();
+                for (String argument : arguments) if (!encoder.canEncode(argument)) return List.of();
+            } catch (IllegalArgumentException e) { return List.of(); }
+        }
         var command = new ArrayList<String>(); command.add(executable); command.addAll(List.of(arguments));
         return List.copyOf(command);
     }
