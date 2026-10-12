@@ -1,7 +1,0 @@
-{
-  "required": true,
-  "package": "net.spidicard.mixin",
-  "compatibilityLevel": "JAVA_21",
-  "client": ["ClientPlayNetworkHandlerMixin", "HandledScreenMixin", "MinecraftClientMixin", "TextRendererMixin", "ClientCommandMixin"],
-  "injectors": { "defaultRequire": 1 }
-}
